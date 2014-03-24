@@ -50,6 +50,7 @@ def framerate2str(framerate):
 
 class RepoPublisher(pyccn.Closure):
 	def __init__(self, handle, prefix, repo_loc = None):
+		print "@ running in utils.RepoPublisher.__init__"
 		self._sequence = 0;
 
 		self.handle = handle
@@ -69,6 +70,7 @@ class RepoPublisher(pyccn.Closure):
 		self.interest_tpl = pyccn.Interest(scope = 1)
 
 	def put(self, content):
+		print "@ running in utils.RepoPublisher.put()"
 		name = self.prefix + str(self._sequence)
 		self._sequence += 1
 
@@ -80,10 +82,12 @@ class RepoPublisher(pyccn.Closure):
 		self.handle.run(0)
 
 	def upcall(self, kind, info):
+		print "@ running in utils.RepoPublisher.upcall()"
 		return pyccn.RESULT_OK
 
 class RepoSocketPublisher(pyccn.Closure):
 	def __init__(self, repo_port = None):
+		print "@ running in utils.RepoSocketPublisher.__init__"
 		if not repo_port:
 			if not os.environ.has_key('CCNR_STATUS_PORT'):
 				raise Exception("CCNR_STATUS_PORT not defined and no repo port specified")
@@ -97,31 +101,44 @@ class RepoSocketPublisher(pyccn.Closure):
 		self.handle = pyccn.CCN()
 
 	def put(self, content):
+		#@ the content send here is a ContentObject,
+		#@ not a content in contentobject
+		print "@ running in utils.RepoSocketPublisher.put()"
+		print "@ running RepoSocketPublisher.sock.send(_pyccn.dump_charbuf(content.ccn_data))"
 		self.sock.send(_pyccn.dump_charbuf(content.ccn_data))
+		print "@ running RepoSocketPublisher.handle.put(content)"
 		self.handle.put(content)
 
 class RingBuffer:
 	def __init__(self, size):
+		print "@ running in utils.RingBuffer.__init__"
 		self.data = [None for i in xrange(size)]
 
 	def append(self, x):
+		print "@ running in utils.RingBuffer.append()"
 		self.data.pop(0)
 		self.data.append(x)
 
 	def get(self):
+		print "@ running in utils.RingBuffer.get()"
 		return self.data
 
 class CCNBuffer(Queue.Queue):
+	# @ Queue.Queue(maxsize) first in first out
 	def _init(self, maxsize):
+		print "@ running in utils.CCNBuffer.__init__"
 		self.queue = []
 
 	def _qsize(self):
+		print "@ running in utils.CCNBuffer._qsize()"
 		return len(self.queue)
 
 	def _get(self):
+		print "@ running in utils.CCNBuffer._get()"
 		raise NotImplementedError()
 
 	def _put(self, item):
+		print "@ running in utils.CCNBuffer._put()"
 		if not isinstance(item, pyccn.ContentObject):
 			raise ValueError("Item needs to be of ContentObject type")
 
@@ -140,6 +157,7 @@ class CCNBuffer(Queue.Queue):
 		return None
 
 	def _get_element(self, interest):
+		print "@ running in utils.CCNBuffer._get_element()"
 		#self.queue.sort(key=itemgetter(1))
 
 		for co in enumerate(self.queue):
@@ -154,6 +172,7 @@ class CCNBuffer(Queue.Queue):
 		raise ValueError("Element '%s' not found in the queue" % interest.name)
 
 	def _get_old(self, diff):
+		print "@ running in utils.CCNBuffer._get_old()"
 		now = time.time()
 		then = now - diff
 
@@ -179,6 +198,7 @@ class CCNBuffer(Queue.Queue):
 		is immediately available, else raise the Full exception ('timeout'
 		is ignored in that case).
 		"""
+		print "@ running in utils.CCNBuffer.put()"
 		self.not_full.acquire()
 		try:
 			if self.maxsize > 0:
@@ -215,6 +235,7 @@ class CCNBuffer(Queue.Queue):
 		available, else raise the Empty exception ('timeout' is ignored
 		in that case).
 		"""
+		print "@ running in utils.CCNBuffer.get_element()"
 		self.not_empty.acquire()
 		try:
 			if not block:
@@ -240,23 +261,28 @@ class CCNBuffer(Queue.Queue):
 
 class Interest:
 	def __init__(self, i):
+		print "@ running in utils.Interest.__init__"
 		self.interest = i
 		self.name = i.name
 		self.namelen = len(self.name)
 
 	def __lt__(self, other):
+		print "@ running in utils.Interest.__lt__()"
 		return self.namelen >= other
 
 	def get(self):
+		print "@ running in utils.Interest.get()"
 		return self.interest
 
 class InterestTable:
 	interests = []
 
 	def __init__(self):
+		print "@ running in utils.InterestTable.__init__"
 		self.mutex = threading.Lock()
 
 	def add(self, interest):
+		print "@ running in utils.InterestTable.add()"
 		self.mutex.acquire()
 		try:
 			bisect.insort(self.interests, Interest(interest))
@@ -264,6 +290,7 @@ class InterestTable:
 			self.mutex.release()
 
 	def removeMatch(self, co):
+		print "@ running in utils.InterestTable.removeMatch()"
 		self.mutex.acquire()
 		try:
 			for i in enumerate(self.interests):
@@ -277,10 +304,12 @@ class InterestTable:
 			self.mutex.release()
 
 class FlowController(pyccn.Closure):
+	#@ here are the class attributes
 	queue = CCNBuffer(100)
 	unmatched_interests = InterestTable()
 
 	def __init__(self, prefix, handle):
+		print "@ running in utils.FlowController.__init__"
 		self.prefix = pyccn.Name(prefix)
 		self.handle = handle
 
@@ -288,6 +317,7 @@ class FlowController(pyccn.Closure):
 		handle.setInterestFilter(self.prefix, self)
 
 	def put(self, co):
+		print "@ running in utils.FlowController.put()"
 		if self.unmatched_interests.removeMatch(co):
 			print "Interest already issued"
 			self.handle.put(co)
@@ -299,6 +329,7 @@ class FlowController(pyccn.Closure):
 			self.handle.put(co)
 
 	def upcall(self, kind, info):
+		print "@ running in utils.FlowController.upcall()"
 		if kind in [pyccn.UPCALL_FINAL, pyccn.UPCALL_CONSUMED_INTEREST]:
 			return pyccn.RESULT_OK
 
@@ -329,6 +360,7 @@ class FlowController(pyccn.Closure):
 
 class VersionedPull(pyccn.Closure):
 	def __init__(self, base_name, callback, handle = None, version = None, latest = True):
+		print "@ running in utils.VersionedPull.__init__"
 		if not handle:
 			handle = pyccn.CCN()
 
@@ -344,6 +376,7 @@ class VersionedPull(pyccn.Closure):
 		self.start_with_latest = latest
 
 	def build_interest(self, latest):
+		print "@ running in utils.VersionedPull.build_interest()"
 		if self.start_with_latest:
 			latest = True
 			self.start_with_latest = False
@@ -361,6 +394,7 @@ class VersionedPull(pyccn.Closure):
 		return interest
 
 	def fetchNext(self, latest = False):
+		print "@ running in utils.VersionedPull.fetchNext()"
 		interest = self.build_interest(latest)
 		co = self.handle.get(interest.name, interest)
 
@@ -371,10 +405,12 @@ class VersionedPull(pyccn.Closure):
 		return co
 
 	def requestNext(self, latest = False):
+		print "@ running in utils.VersionedPull.requestNext()"
 		interest = self.build_interest(latest)
 		self.handle.expressInterest(interest.name, self, interest)
 
 	def upcall(self, kind, info):
+		print "@ running in utils.VersionedPull.upcall()"
 		if kind == pyccn.UPCALL_FINAL:
 			return pyccn.RESULT_OK
 
@@ -391,6 +427,7 @@ class PipelineFetch(object):
 	increase_every = 2
 
 	def __init__(self, window, request_cb, receive_cb):
+		print "@ running in utils.PipelineFetch.__init__"
 		self.window = window
 		self.request_cb = request_cb
 		self.receive_cb = receive_cb
@@ -398,6 +435,7 @@ class PipelineFetch(object):
 	def reset(self, position = 0):
 		"""resets pipeline to specified segment and (re)starts pipelining"""
 
+		print "@ running in utils.PipelineFetch.reset()"
 		self._buf = {}
 		self._position = position
 		self._requested = position - 1
@@ -408,6 +446,7 @@ class PipelineFetch(object):
 	def put(self, number, data):
 		"""places received data packet in the buffer"""
 
+		print "@ running in utils.PipelineFetch.put()"
 		if number < self._position:
 			print "%d < %d - dropping" % (number, self._position)
 		else:
@@ -420,6 +459,7 @@ class PipelineFetch(object):
 		self.put(number, None)
 
 	def get_position(self):
+		print "@ running in utils.PipelineFetch.get_position()"
 		if not hasattr(self, '_position'):
 			return -1
 
@@ -428,12 +468,14 @@ class PipelineFetch(object):
 	def get_pipeline_size(self):
 		"""returns current number of elements in pipeline"""
 
+		print "@ running in utils.PipelineFetch.get_pipeline_size()"
 		if not hasattr(self, '_position'):
 			return 0
 
 		return self._requested - self._position + 1
 
 	def _request_more_data(self):
+		print "@ running in utils.PipelineFetch._request_more_data()"
 		interests_left = 2 if self._counter == 0 else 1
 		self._counter = (self._counter + 1) % self.increase_every
 
@@ -446,6 +488,7 @@ class PipelineFetch(object):
 		#print "Pipeline size: %d" % (self._requested - self._position)
 
 	def _push_out_data(self):
+		print "@ running in utils.PipelineFetch._push_out_data()"
 		while self._buf.has_key(str(self._position)):
 			data = self._buf[str(self._position)]
 			self.receive_cb(data)

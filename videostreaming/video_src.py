@@ -71,6 +71,7 @@ class VideoSrc(ElementBase.CCNElementSrc):
 	}
 
 	def do_set_property(self, property, value):
+		print "@ running in video_src.VideoSrc.do_set_property()"
 		if property.name == 'location':
 			self.depacketizer = CCNVideoDepacketizer(value, 18)
 		elif property.name == 'publisher':

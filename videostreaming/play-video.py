@@ -33,6 +33,7 @@ class GstPlayer(player.GstPlayer):
 		return True
 
 	def set_location(self, location):
+		print "@ running in play-video.GstPlayer.set_location()"
 		self.vsrc.set_property('location', location)
 		video_input = self.player.get_by_name('video_input')
 		self.vsrc.link(video_input)
@@ -46,7 +47,7 @@ def main(args):
 	parser.add_argument('-l', '--live', action="store_true", help = 'play in live mode')
 	parser.add_argument('URI', help = 'URI of the video stream')
 
-	cmd_args = parser.parse_args()
+	cmd_args = parser.parse_args()	#parse the args from command line
 
 	w = player_gui.PlayerWindow(GstPlayer, cmd_args)
 	w.load_file(cmd_args.URI)

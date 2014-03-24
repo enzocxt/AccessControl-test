@@ -12,6 +12,7 @@ from ElementBase import CCNPacketizer
 
 class CCNVideoPacketizer(CCNPacketizer):
 	def __init__(self, repolocation, uri):
+		print "@ running in video_sink.CCNVideoPacketizer.__init__"
 #		self._tc = None
 
 		publisher = utils.RepoSocketPublisher()
@@ -22,6 +23,7 @@ class CCNVideoPacketizer(CCNPacketizer):
 #		self._tc = utils.TCConverter(framerate)
 
 	def pre_process_buffer(self, buffer):
+		print "@ running in video_sink.CCNVideoPacketizer.pre_process_buffer()"
 		if not buffer.flag_is_set(gst.BUFFER_FLAG_DELTA_UNIT):
 #			frame = self._tc.ts2tc(buffer.timestamp)
 #			print "frame %s" % frame
@@ -29,7 +31,8 @@ class CCNVideoPacketizer(CCNPacketizer):
 
 			timestamp = buffer.timestamp
 			print "video: %s" % datetime.timedelta(seconds = float(timestamp) / gst.SECOND)
-			packet = self.prepare_frame_packet(pyccn.Name.num2seg(timestamp), self._segment)
+			packet = self.prepare_frame_packet(pyccn.Name.num2seg(timestamp), self._segment) #@ self._segment is int
+			print "@ packet name is: %s" % packet.name
 			self.publisher.put(packet)
 			return True, False
 		return False, False
@@ -60,6 +63,7 @@ class VideoSink(gst.BaseSink):
 	}
 
 	def __init__(self):
+		print "@ running in video_sink.VideoSink.__init__"
 		gst.BaseSink.__init__(self)
 		self.pr_location = None
 		self.pr_repolocation = None
@@ -82,6 +86,7 @@ class VideoSink(gst.BaseSink):
 			raise AttributeError, 'unknown property %s' % property.name
 
 	def do_set_caps(self, caps):
+		print "@ running in video_sink.VideoSink.do_set_caps."
 		print "Caps: %s" % caps
 		self.packetizer.set_caps(caps)
 		return True
@@ -108,6 +113,7 @@ class VideoSink(gst.BaseSink):
 		return gst.FLOW_OK
 
 	def do_render(self, buffer):
+		print "@ running in video_sink.VideoSink.do_render()"
 		#print "Buffer timestamp %d %d %d %s %d %d" % (utils.signed(buffer.timestamp), utils.signed(buffer.duration), buffer.flags, buffer.caps, utils.signed(buffer.offset), utils.signed(buffer.offset_end))
 		self.packetizer.process_buffer(buffer)
 		return gst.FLOW_OK
@@ -130,6 +136,7 @@ class VideoSink(gst.BaseSink):
 gst.element_register(VideoSink, 'VideoSink')
 
 if __name__ == '__main__':
+	print "@ running in video_sink.__main__."
 	gobject.threads_init()
 
 	def usage():
@@ -142,7 +149,7 @@ if __name__ == '__main__':
 	uri = sys.argv[1]
 
 	pipeline = gst.parse_launch("""
-		videotestsrc pattern=18 ! video/x-raw-yuv,width=704,height=480 ! videorate !
+		videotestsrc pattern=0 ! video/x-raw-yuv,width=704,height=480 ! videorate !
 		timeoverlay shaded-background=true valignment=bottom ! clockoverlay shaded-background=true halignment=right valignment=bottom !
 		tee name=input
 		input. ! queue leaky=1 max-size-buffers=0 max-size-bytes=0 max-size-time=5000000000 ! colorspace ! ximagesink

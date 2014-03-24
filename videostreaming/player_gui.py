@@ -11,6 +11,7 @@ import datetime
 
 class VideoWidget(gtk.DrawingArea):
 	def __init__(self):
+		print "@ running in player_gui.VideoWidget.__init__"
 		gtk.DrawingArea.__init__(self)
 		self.imagesink = None
 		self.unset_flags(gtk.DOUBLE_BUFFERED)
@@ -33,6 +34,7 @@ class PlayerWindow(gtk.Window):
 	UPDATE_INTERVAL = 500
 
 	def __init__(self, gst_player, cmd_args):
+		print "@ running in player_gui.PlayerWindow.__init__"
 		gtk.Window.__init__(self)
 		#gtk.Window.set_property('title', "whatever")
 		self.set_default_size(670, 580)
@@ -40,6 +42,7 @@ class PlayerWindow(gtk.Window):
 		self.create_ui()
 
 		self.player = gst_player(self.videowidget, cmd_args)
+		# what's for?
 		self.player.connect("status-updated", self._status_updated)
 
 		def on_eos():

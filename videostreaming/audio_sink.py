@@ -22,6 +22,7 @@ class CCNAudioPacketizer(CCNPacketizer):
 		super(CCNAudioPacketizer, self).__init__(publisher, uri)
 
 	def pre_process_buffer(self, buffer):
+		print "@ running in audio_sink.CCNAudioPacketizer.pre_process_buffer()"
 		timestamp = buffer.timestamp
 		if self.last_index is not None and \
 				(timestamp - self.last_index) < self.index_frequency * 1000000:
